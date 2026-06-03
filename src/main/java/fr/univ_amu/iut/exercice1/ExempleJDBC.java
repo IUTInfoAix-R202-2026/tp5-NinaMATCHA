@@ -66,10 +66,16 @@ public class ExempleJDBC {
   static List<String> lireTaxons(Connection connexion) throws SQLException {
     List<String> lignes = new ArrayList<>();
 
-    // TODO exercice 1 : lire la table taxon.
+    //  exercice 1 : lire la table taxon.
     //
     // 1. Créer une instruction : connexion.createStatement() (dans un try-with-resources).
-    // 2. Exécuter le SELECT : st.executeQuery("SELECT code, nom_vernaculaire FROM taxon").
+    try (Statement st = connexion.createStatement();
+        ResultSet rs = st.executeQuery("SELECT code, nom_vernaculaire FROM taxon")) {
+      while (rs.next()) {
+        lignes.add(rs.getString("code") + " - " + rs.getString("nom_vernaculaire"));
+      }
+    } // st et rs fermés automatiquement, même en cas d'exception
+    // 2. Exécuter le SELECT :
     // 3. Parcourir le ResultSet avec while (rs.next()) et, pour chaque ligne, ajouter à `lignes`
     //    la chaîne : rs.getString("code") + " - " + rs.getString("nom_vernaculaire").
 
