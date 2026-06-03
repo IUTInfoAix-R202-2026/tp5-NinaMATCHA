@@ -43,7 +43,6 @@ public class TaxonDao {
 
     try (Connection connexion = source.getConnection();
         PreparedStatement ps = connexion.prepareStatement(sql)) {
-      // ps.setString(1, valeur);                 // paramètre lié, jamais concaténé
       try (ResultSet rs = ps.executeQuery()) {
         while (rs.next()) {
           taxons.add(
@@ -76,7 +75,7 @@ public class TaxonDao {
       ps.setString(1, code);
       try (ResultSet rs = ps.executeQuery()) {
         while (rs.next()) {
-          Taxon t = new Taxon(code, rs.getString("nom_latin"), rs.getString("nom_vernaculaire"));
+          Taxon t = depuis(rs);
           resultat = Optional.of(t);
         }
       }
