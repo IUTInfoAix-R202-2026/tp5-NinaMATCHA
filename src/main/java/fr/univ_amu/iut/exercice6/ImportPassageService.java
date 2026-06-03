@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 import javax.sql.DataSource;
 
@@ -51,7 +52,7 @@ public class ImportPassageService {
 
     long passageId = -1;
 
-    // TODO exercice 6 : réaliser l'import dans une transaction et renseigner `passageId`.
+    // exercice 6 : réaliser l'import dans une transaction et renseigner `passageId`.
     //
     // 1. Ouvrir une connexion, puis connexion.setAutoCommit(false).
     // 2. Dans un try :
@@ -64,6 +65,50 @@ public class ImportPassageService {
     // 4. finally : refermer la connexion.
     //
     // Astuce : ouvrez la connexion AVANT le try afin de pouvoir faire rollback dans le catch.
+
+    Connection connexion = null;
+    try {
+      connexion = source.getConnection();
+      connexion.setAutoCommit(false);
+      PreparedStatement ps =
+          connexion.prepareStatement(sqlPassage, Statement.RETURN_GENERATED_KEYS);
+      ps.setString(1, numeroCarre);
+      ps.setString(2, codePoint);
+      ps.setInt(3, numeroPassage);
+      ps.setInt(4, annee);
+      ps.executeUpdate();
+      ResultSet keys = ps.getGeneratedKeys();
+      keys.next();
+      passageId = keys.getLong(1);
+
+      for (ObservationAImporter obs : observations) {
+        PreparedStatement ps2 =
+            connexion.prepareStatement(sqlObservation, Statement.RETURN_GENERATED_KEYS);
+        ps2.setString(1, "" + passageId);
+        ps2.setString(2, "" + obs.tempsDebut());
+        ps2.setString(3, "" + obs.tempsFin());
+        ps2.setString(4, "" + obs.frequenceMediane());
+        ps2.setString(5, "" + obs.codeTaxon());
+        ps2.setString(6, "" + obs.probabilite());
+        ps2.executeUpdate();
+      }
+      connexion.commit();
+    } catch (SQLException e) {
+      if (connexion != null) {
+        try {
+          connexion.rollback();
+        } catch (SQLException x) {
+        }
+      } // un échec -> on annule TOUT
+      throw new DataAccessException("message", e);
+    } finally {
+      if (connexion != null) {
+        try {
+          connexion.close();
+        } catch (SQLException x) {
+        }
+      } // toujours refermer
+    }
 
     return passageId;
   }
