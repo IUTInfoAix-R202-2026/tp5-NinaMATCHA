@@ -1,5 +1,7 @@
 package fr.univ_amu.iut.exercice3;
 
+import fr.univ_amu.iut.jdbc.DataAccessException;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -32,12 +34,28 @@ public class TaxonDao {
     List<Taxon> taxons = new ArrayList<>();
     String sql = "SELECT code, nom_latin, nom_vernaculaire FROM taxon ORDER BY code";
 
-    // TODO exercice 3 : exécuter le SELECT et construire la liste des Taxon.
+    //  exercice 3 : exécuter le SELECT et construire la liste des Taxon.
     //
     // - ouvrir une connexion (source.getConnection()) dans un try-with-resources ;
     // - préparer puis exécuter la requête (connexion.prepareStatement(sql), ps.executeQuery()) ;
     // - pour chaque ligne, appeler depuis(rs) et l'ajouter à `taxons`.
     // - en cas de SQLException, lever une DataAccessException.
+
+    try (Connection connexion = source.getConnection();
+        PreparedStatement ps = connexion.prepareStatement(sql)) {
+      // ps.setString(1, valeur);                 // paramètre lié, jamais concaténé
+      try (ResultSet rs = ps.executeQuery()) {
+        while (rs.next()) {
+          taxons.add(
+              new Taxon(
+                  rs.getString("code"),
+                  rs.getString("nom_latin"),
+                  rs.getString("nom_vernaculaire")));
+        }
+      }
+    } catch (SQLException e) {
+      throw new DataAccessException("DataAccessException", e);
+    }
 
     return taxons;
   }
@@ -47,11 +65,24 @@ public class TaxonDao {
     String sql = "SELECT code, nom_latin, nom_vernaculaire FROM taxon WHERE code = ?";
     Optional<Taxon> resultat = Optional.empty();
 
-    // TODO exercice 3 : exécuter la requête paramétrée et affecter le taxon trouvé à `resultat`.
+    // exercice 3 : exécuter la requête paramétrée et affecter le taxon trouvé à `resultat`.
     //
     // - préparer la requête, puis lier le paramètre `?` au code (méthode setString) ;
     // - exécuter ; si le ResultSet contient une ligne, construire le Taxon avec depuis(rs)
     //   et l'envelopper dans un Optional ; sinon, laisser `resultat` vide.
+
+    try (Connection connexion = source.getConnection();
+        PreparedStatement ps = connexion.prepareStatement(sql)) {
+      ps.setString(1, code);
+      try (ResultSet rs = ps.executeQuery()) {
+        while (rs.next()) {
+          Taxon t = new Taxon(code, rs.getString("nom_latin"), rs.getString("nom_vernaculaire"));
+          resultat = Optional.of(t);
+        }
+      }
+    } catch (SQLException e) {
+      throw new DataAccessException("message", e);
+    }
 
     return resultat;
   }
